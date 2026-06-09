@@ -1,0 +1,6 @@
+@EcomifyCustomers_HostAddress = http://localhost:5184
+
+GET {{EcomifyCustomers_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
