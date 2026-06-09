@@ -1,11 +1,11 @@
 using EcomifyCustomers.Data;
 using EcomifyCustomers.Models;
+using EcomifyCustomers.Services;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Registrar el composite type address_type en Npgsql
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")!;
 var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
 dataSourceBuilder.MapComposite<CustomerAddress>("address_type");
@@ -13,6 +13,8 @@ var dataSource = dataSourceBuilder.Build();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(dataSource));
+
+builder.Services.AddScoped<ICustomerService, CustomerService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
