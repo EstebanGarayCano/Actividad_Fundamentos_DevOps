@@ -1,0 +1,96 @@
+name: CI — Unit Tests & Code Quality
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    name: xUnit Tests — EcomifyCustomers
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore tests/EcomifyCustomers.Tests/EcomifyCustomers.Tests.csproj
+
+      - name: Build (no restore)
+        run: dotnet build tests/EcomifyCustomers.Tests/EcomifyCustomers.Tests.csproj --no-restore -c Release
+
+      - name: Run xUnit tests
+        run: |
+          dotnet test tests/EcomifyCustomers.Tests/EcomifyCustomers.Tests.csproj \
+            --no-build \
+            -c Release \
+            --logger "trx;LogFileName=results.trx" \
+            --logger "console;verbosity=normal" \
+            --results-directory ./TestResults \
+            /p:CollectCoverage=true \
+            /p:CoverletOutputFormat=opencover \
+            /p:CoverletOutput=./TestResults/coverage.xml
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-ecomify-customers
+          path: TestResults/
+
+  sonarqube:
+    name: SonarQube Analysis
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    if: ${{ vars.SONAR_HOST_URL != '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install SonarScanner
+        run: dotnet tool install --global dotnet-sonarscanner
+
+      - name: Begin SonarQube analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+        run: |
+          dotnet sonarscanner begin \
+            /k:"EcomifyCustomers" \
+            /d:sonar.host.url="${SONAR_HOST_URL}" \
+            /d:sonar.token="${SONAR_TOKEN}" \
+            /d:sonar.cs.opencover.reportsPaths="**/TestResults/coverage.xml" \
+            /d:sonar.cs.vstest.reportsPaths="**/TestResults/*.trx"
+
+      - name: Build for SonarQube
+        run: dotnet build EcomifyCustomers/EcomifyCustomers.csproj -c Release
+
+      - name: Run tests for coverage
+        run: |
+          dotnet test tests/EcomifyCustomers.Tests/EcomifyCustomers.Tests.csproj \
+            -c Release \
+            --logger "trx;LogFileName=results.trx" \
+            --results-directory ./TestResults \
+            /p:CollectCoverage=true \
+            /p:CoverletOutputFormat=opencover \
+            /p:CoverletOutput=./TestResults/coverage.xml
+
+      - name: End SonarQube analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+        run: dotnet sonarscanner end /d:sonar.token="${SONAR_TOKEN}"
