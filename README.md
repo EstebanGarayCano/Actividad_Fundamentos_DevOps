@@ -221,3 +221,7 @@ dotnet test tests/EcomifyCustomers.Tests/EcomifyCustomers.Tests.csproj \
 | **xUnit** | Testing | Framework nativo del ecosistema .NET, integración directa con `dotnet test` y GitHub Actions |
 | **Moq** | Mocking | Permite pruebas unitarias sin base de datos real, desacoplando la lógica de negocio |
 | **GKE (Kubernetes)** | Orquestación | Escalabilidad automática, gestión declarativa de despliegues, estándar para microservicios en producción |
+
+
+> Repositorio: https://github.com/EstebanGarayCano/Actividad_Fundamentos_DevOps
+
