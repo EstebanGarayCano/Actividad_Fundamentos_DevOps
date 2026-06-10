@@ -1,122 +1,217 @@
-# Proyecto Esteban
+# Actividad 3 — TrabajoK8S
+**Esteban Giovanny Garay Cano**  
+Maestría en Arquitectura de Software y DevOps
 
-Aplicación de gestión de usuarios con **frontend en React** y **backend en C# (ASP.NET Core)**, usando **SQL Server** como base de datos.
-
-## Requisitos
-
-- **.NET 10 SDK** (o la versión que tengas instalada para compilar localmente)
-- **Node.js 18+** y **npm** – para el frontend
-- **SQL Server** (LocalDB, Express o completo) – para la base de datos
-
-## Estructura del proyecto
-
-```
-Proyecto Esteban/
-├── Backend/          # Microservicio de usuarios y autenticación (puerto 5000)
-├── Productos/        # Microservicio de productos (puerto 5001)
-├── Frontend/         # React + Vite
-├── docker-compose.yml
-└── README.md
-```
-
-## Configuración de la base de datos
-
-En `Backend/appsettings.json` (o `appsettings.Development.json`) ajusta la cadena de conexión si no usas SQL Server en localhost:
-
-```json
-"ConnectionStrings": {
-  "DefaultConnection": "Server=localhost;Database=ProyectoEstebanDb;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true"
-}
-```
-
-- **Server**: nombre de tu instancia de SQL Server (por ejemplo `localhost`, `.\SQLEXPRESS`, `(localdb)\MSSQLLocalDB`).
-- La base de datos `ProyectoEstebanDb` se crea automáticamente la primera vez que ejecutas el backend.
-
-## Ejecutar el backend (C#)
-
-```bash
-cd Backend
-dotnet run
-```
-
-La API quedará en **http://localhost:5000**. La documentación Swagger en **http://localhost:5000/swagger**.
-
-## Ejecutar el frontend (React)
-
-```bash
-cd Frontend
-npm install
-npm run dev
-```
-
-La aplicación quedará en **http://localhost:5173**. Las peticiones a `/api` se redirigen al backend (puerto 5000) mediante el proxy de Vite.
-
-## Funcionalidad
-
-- **Registro de usuarios**: nombre, apellido, email, nombre de usuario y contraseña (almacenada con hash BCrypt).
-- **Inicio de sesión**: autenticación por nombre de usuario y contraseña.
-- **Listado de usuarios**: tabla con todos los usuarios (requiere estar autenticado).
-- **Alta de usuarios** (modal): crear nuevos usuarios desde la pantalla de listado.
-- **Edición y eliminación** de usuarios desde la misma pantalla.
-
-## API principal
-
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| POST   | `/api/auth/registro` | Registrar usuario |
-| POST   | `/api/auth/login`    | Iniciar sesión   |
-| GET    | `/api/usuarios`      | Listar usuarios  |
-| POST   | `/api/usuarios`      | Crear usuario    |
-| PUT    | `/api/usuarios/{id}` | Actualizar usuario |
-| DELETE | `/api/usuarios/{id}` | Eliminar usuario |
-
-## Migraciones con Entity Framework
-
-Este proyecto está configurado para usar **migraciones** de Entity Framework (`Database.MigrateAsync()` se ejecuta al arrancar).
-
-1. Instalar la herramienta global:  
-   `dotnet tool install --global dotnet-ef`
-2. En la carpeta `Backend`:  
-   `dotnet ef migrations add InitialCreate`  
-   `dotnet ef database update`
-
-En desarrollo en macOS se usa, por defecto, **SQLite** con el archivo `proyectoesteban.db` (ver `appsettings.Development.json`).  
-En producción / Docker se usa **SQL Server** mediante la cadena de conexión configurada.
-
-## Microservicio de usuarios y autenticación (Docker)
-
-El proyecto `Backend` actúa como **microservicio de usuarios/autenticación**.
-
-Para levantarlo en Docker junto con SQL Server:
-
-```bash
-cd "Proyecto Esteban"
-docker compose up --build
-```
-
-Servicios:
-
-- `authservice` (usuarios y autenticación) en `http://localhost:5000`
-- `productos` (gestión de productos) en `http://localhost:5001`
-- `sqlserver` (SQL Server 2022 en contenedor, solo para auth)
-
-La cadena de conexión de cada microservicio se define en `docker-compose.yml`.
+Aplicación web de e-commerce con arquitectura de microservicios, desplegada en Google Kubernetes Engine (GKE) mediante dos pipelines de CI/CD independientes: **GitHub Actions** (Integración Continua) y **Jenkins** (Entrega Continua).
 
 ---
 
-## Menú y Productos (Frontend)
+## Arquitectura general
 
-Tras autenticarse, el menú incluye:
+```
+┌─────────────────────────────────────────────────────────┐
+│                     GitHub Repository                    │
+│  Frontend (React) · Backend · Productos · EcomifyCustomers │
+└───────────────────┬─────────────────────────────────────┘
+                    │ push / pull_request
+          ┌─────────▼──────────┐
+          │   GitHub Actions   │  ← Pipeline CI
+          │  (ci.yml)          │
+          │  · Checkout        │
+          │  · dotnet restore  │
+          │  · dotnet build    │
+          │  · xUnit tests     │
+          └─────────┬──────────┘
+                    │ imagen lista
+          ┌─────────▼──────────┐
+          │      Jenkins       │  ← Pipeline CD
+          │  (Jenkinsfile)     │
+          │  · Checkout        │
+          │  · Docker build    │
+          │  · Push DockerHub  │
+          │  · Deploy K8s      │
+          └─────────┬──────────┘
+                    │
+          ┌─────────▼──────────┐
+          │  Google Kubernetes │
+          │  Engine (GKE)      │
+          └────────────────────┘
+```
 
-- **Usuarios**: listado y gestión de usuarios.
-- **1. Producto**
-  - **1.1 Listar Productos**: tabla con todos los productos.
-  - **1.2 Agregar productos**: formulario para crear productos.
+---
 
-El microservicio **Productos** expone:
+## Stack tecnológico
 
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET    | `/api/productos`     | Listar productos |
-| GET    | `/api/productos/{id}`| Obtener producto |
-| POST   | `/api/productos`     | Agregar producto |
+| Capa | Tecnología |
+|------|-----------|
+| Frontend | React + Vite |
+| Backend (auth/usuarios) | ASP.NET Core 10 |
+| Microservicio Productos | ASP.NET Core 10 |
+| Microservicio Customers | ASP.NET Core 10 + EF Core + PostgreSQL |
+| Base de datos | PostgreSQL en Supabase |
+| Contenedores | Docker |
+| Registry | DockerHub (`estebangaraycano/`) |
+| Orquestación | Kubernetes (GKE) + Helm |
+| CI | GitHub Actions |
+| CD | Jenkins |
+| Pruebas unitarias | xUnit + Moq |
+
+---
+
+## Estructura del repositorio
+
+```
+Actividad3-TrabajoK8S/
+├── .github/
+│   └── workflows/
+│       ├── ci.yml                  ← Pipeline CI (GitHub Actions)
+│       └── build-push-deploy.yml   ← Pipeline build + deploy GKE
+├── EcomifyCustomers/               ← Microservicio CRUD clientes
+│   ├── Controllers/
+│   ├── Services/
+│   ├── DTOs/
+│   ├── Models/
+│   ├── Data/
+│   ├── Dockerfile
+│   └── appsettings.json
+├── Backend/                        ← Microservicio autenticación
+├── Productos/                      ← Microservicio productos
+├── Frontend/                       ← App React
+├── tests/
+│   └── EcomifyCustomers.Tests/     ← 20 pruebas xUnit
+├── helm/                           ← Chart Helm para K8s
+├── Jenkinsfile                     ← Pipeline CD (Jenkins)
+├── DOCUMENTACION.md
+└── README.md
+```
+
+---
+
+## Flujo CI/CD
+
+### Pipeline CI — GitHub Actions (`ci.yml`)
+
+**Cuándo se ejecuta:** automáticamente ante cada `push` o `pull_request` a la rama `main`.
+
+**Stages:**
+
+| # | Stage | Comando | Propósito |
+|---|-------|---------|-----------|
+| 1 | **Checkout** | `actions/checkout@v4` | Clona el repositorio completo |
+| 2 | **Setup .NET 10** | `actions/setup-dotnet@v4` | Instala el SDK y dependencias del runtime |
+| 3 | **Restore dependencies** | `dotnet restore` | Descarga los paquetes NuGet |
+| 4 | **Build** | `dotnet build -c Release` | Compila el código en modo Release |
+| 5 | **Run xUnit tests** | `dotnet test` | Ejecuta las 20 pruebas unitarias, genera reporte TRX y cobertura OpenCover |
+| 6 | **Upload artifacts** | `actions/upload-artifact@v4` | Guarda los resultados de pruebas descargables desde GitHub |
+
+**Resultado esperado:**
+```
+Test Run Successful.
+Total tests: 20 · Passed: 20
+```
+
+### Pipeline CD — Jenkins (`Jenkinsfile`)
+
+**Cuándo se ejecuta:** manualmente o ante eventos configurados en Jenkins.
+
+**Stages:**
+
+| # | Stage | Propósito |
+|---|-------|-----------|
+| 1 | **Checkout** | Clona el repositorio desde GitHub |
+| 2 | **Build Docker image** | Construye la imagen con el Dockerfile multi-etapa |
+| 3 | **Push to DockerHub** | Publica la imagen en `estebangaraycano/ecomify-customers` |
+| 4 | **Deploy to Kubernetes** | Aplica los manifiestos al cluster GKE |
+
+---
+
+## Microservicio EcomifyCustomers
+
+API REST con CRUD completo sobre la tabla `ecommify_customers` en PostgreSQL (Supabase).
+
+**Base URL local:** `http://localhost:8080`  
+**Imagen DockerHub:** `estebangaraycano/ecomify-customers:latest`
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/api/customers` | Lista todos los clientes |
+| GET | `/api/customers/{id}` | Obtiene un cliente por ID |
+| POST | `/api/customers` | Crea un nuevo cliente |
+| PUT | `/api/customers/{id}` | Actualiza un cliente existente |
+| DELETE | `/api/customers/{id}` | Elimina un cliente |
+
+Swagger disponible en: `http://localhost:8080/swagger`
+
+### Ejecutar localmente
+
+```bash
+cd EcomifyCustomers
+dotnet run
+```
+
+### Ejecutar en Docker
+
+```bash
+docker build -t ecomify-customers:latest -f EcomifyCustomers/Dockerfile EcomifyCustomers
+docker run -d -p 8080:8080 ecomify-customers:latest
+```
+
+### Obtener imagen desde DockerHub
+
+```bash
+docker pull estebangaraycano/ecomify-customers:latest
+docker run -d -p 8080:8080 estebangaraycano/ecomify-customers:latest
+```
+
+---
+
+## Pruebas unitarias
+
+**Framework:** xUnit 2.9.3 + Moq 4.20.72  
+**Total:** 20 pruebas — 0 dependencias de base de datos (todo mockeado)
+
+| Archivo | Pruebas | Qué valida |
+|---------|---------|------------|
+| `CustomerAddressTests.cs` | 4 | Modelo de dirección (constructor, nulos, igualdad) |
+| `CustomerServiceContractTests.cs` | 6 | Contrato de la interfaz `ICustomerService` |
+| `CustomersControllerTests.cs` | 10 | Respuestas HTTP del controlador (200, 201, 204, 404, 409) |
+
+**Ejecutar las pruebas:**
+
+```bash
+dotnet test tests/EcomifyCustomers.Tests/ --logger "console;verbosity=normal"
+```
+
+---
+
+## Ejecución manual del pipeline CI
+
+Para reproducir localmente lo que ejecuta GitHub Actions:
+
+```bash
+# 1. Restaurar dependencias
+dotnet restore tests/EcomifyCustomers.Tests/EcomifyCustomers.Tests.csproj
+
+# 2. Compilar
+dotnet build tests/EcomifyCustomers.Tests/EcomifyCustomers.Tests.csproj --no-restore -c Release
+
+# 3. Ejecutar pruebas con reporte
+dotnet test tests/EcomifyCustomers.Tests/EcomifyCustomers.Tests.csproj \
+  --no-build -c Release \
+  --logger "trx;LogFileName=results.trx" \
+  --logger "console;verbosity=normal" \
+  --results-directory ./TestResults
+```
+
+---
+
+## Herramientas seleccionadas y justificación
+
+| Herramienta | Rol | Justificación |
+|-------------|-----|---------------|
+| **GitHub Actions** | CI | Integración nativa con el repositorio GitHub, sin infraestructura adicional, ejecución automática ante cada push/PR |
+| **Jenkins** | CD | Mayor control sobre el pipeline de entrega, agnóstico del proveedor cloud, estándar de la industria para CD |
+| **DockerHub** | Registry | Gratuito, público, compatible con cualquier cluster Kubernetes sin configuración adicional de autenticación |
+| **xUnit** | Testing | Framework nativo del ecosistema .NET, integración directa con `dotnet test` y GitHub Actions |
+| **Moq** | Mocking | Permite pruebas unitarias sin base de datos real, desacoplando la lógica de negocio |
+| **GKE (Kubernetes)** | Orquestación | Escalabilidad automática, gestión declarativa de despliegues, estándar para microservicios en producción |
