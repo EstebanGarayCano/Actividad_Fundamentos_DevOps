@@ -1,5 +1,8 @@
-# Actividad 3 — TrabajoK8S
-**Esteban Giovanny Garay Cano**  
+# Actividad 3 - Laboratorio técnico U2 - Configurar un pipeline CI/CD básico usando Jenkins, GitHub Actions 
+
+Carlos Alfonso Muñoz Agudelo
+Esteban Giovanny Garay Cano
+Carlos Sebastian Castillo Silva
 Maestría en Arquitectura de Software y DevOps
 
 Aplicación web de e-commerce con arquitectura de microservicios, desplegada en Google Kubernetes Engine (GKE) mediante dos pipelines de CI/CD independientes: **GitHub Actions** (Integración Continua) y **Jenkins** (Entrega Continua).
