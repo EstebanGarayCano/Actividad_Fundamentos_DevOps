@@ -6,7 +6,7 @@ pipeline {
     }
 
     environment {
-        DOCKERHUB_REPO = 'estebangaraycano/ecomify-customers'
+        DOCKERHUB_REPO = 'admicail/ecomify-customers'
         IMAGE_TAG = "${BUILD_NUMBER}"
         DOCKERFILE_PATH = 'EcomifyCustomers/Dockerfile'
         BUILD_CONTEXT = 'EcomifyCustomers'
