@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    options {
+        skipDefaultCheckout(true)
+    }
+
     environment {
         DOCKERHUB_REPO = 'estebangaraycano/ecomify-customers'
         IMAGE_TAG = "${BUILD_NUMBER}"
@@ -11,7 +15,10 @@ pipeline {
     stages {
         stage('Clonar repositorio') {
             steps {
-                checkout scm
+                retry(3) {
+                    git branch: 'main',
+                        url: 'https://github.com/EstebanGarayCano/Actividad_Fundamentos_DevOps.git'
+                }
             }
         }
 
@@ -20,8 +27,13 @@ pipeline {
                 sh '''
                     echo "Listando archivos del repositorio..."
                     ls -la
+
                     echo "Verificando Dockerfile..."
                     ls -la EcomifyCustomers
+                    test -f EcomifyCustomers/Dockerfile
+
+                    echo "Verificando Docker en Jenkins..."
+                    docker --version
                 '''
             }
         }
@@ -71,7 +83,7 @@ pipeline {
         }
 
         failure {
-            echo 'El pipeline CD falló. Revisar el Console Output de Jenkins.'
+            echo 'El pipeline CD falló. Revisar Console Output.'
         }
 
         always {
