@@ -12,10 +12,12 @@ on:
   workflow_dispatch:
 
 env:
-  GCP_PROJECT_ID: project-5a9e4b02-002e-455f-acc
+  GCP_PROJECT_ID: project-54ecee29-e768-42f3-977
   GCP_REGION: us-central1
-  AR_REPO: actividad3trabajok8s
+  AR_REPO: devops-repo
   PLATFORM: linux/amd64
+  WIF_PROVIDER: projects/1090134414741/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+  WIF_SA: github-actions-sa@project-54ecee29-e768-42f3-977.iam.gserviceaccount.com
 
 jobs:
   build-and-push:
@@ -31,7 +33,8 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.WIF_SA }}
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
