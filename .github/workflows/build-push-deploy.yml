@@ -71,13 +71,6 @@ jobs:
             -f Frontend/Dockerfile Frontend
           docker push ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/frontend:latest
 
-      - name: Pull and push SonarQube
-        run: |
-          docker pull sonarqube:community
-          docker tag sonarqube:community \
-            ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/sonarqube:latest
-          docker push \
-            ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/sonarqube:latest
 
   deploy:
     name: Deploy to GKE

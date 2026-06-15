@@ -1,0 +1,75 @@
+# Publica imágenes de herramientas DevOps en Google Artifact Registry.
+# Se ejecuta SOLO manualmente — estas imágenes son infraestructura y
+# no deben actualizarse con cada cambio de código de la aplicación.
+
+name: Infra Tools — Push to Artifact Registry
+
+on:
+  workflow_dispatch:
+    inputs:
+      tools:
+        description: 'Herramientas a publicar (all | prometheus | grafana | sonarqube)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - prometheus
+          - grafana
+          - sonarqube
+
+env:
+  GCP_PROJECT_ID: project-54ecee29-e768-42f3-977
+  GCP_REGION: us-central1
+  AR_REPO: devops-repo
+  WIF_PROVIDER: projects/1090134414741/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+  WIF_SA: github-actions-sa@project-54ecee29-e768-42f3-977.iam.gserviceaccount.com
+
+jobs:
+  push-infra-tools:
+    name: Push DevOps tools to Artifact Registry
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Authenticate to Google Cloud (Workload Identity)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.WIF_SA }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
+
+      - name: Push Prometheus
+        if: ${{ inputs.tools == 'all' || inputs.tools == 'prometheus' }}
+        run: |
+          docker pull prom/prometheus:latest
+          docker tag prom/prometheus:latest \
+            ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/prometheus:latest
+          docker push \
+            ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/prometheus:latest
+
+      - name: Push Grafana
+        if: ${{ inputs.tools == 'all' || inputs.tools == 'grafana' }}
+        run: |
+          docker pull grafana/grafana:latest
+          docker tag grafana/grafana:latest \
+            ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/grafana:latest
+          docker push \
+            ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/grafana:latest
+
+      - name: Push SonarQube
+        if: ${{ inputs.tools == 'all' || inputs.tools == 'sonarqube' }}
+        run: |
+          docker pull sonarqube:community
+          docker tag sonarqube:community \
+            ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/sonarqube:latest
+          docker push \
+            ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/sonarqube:latest
