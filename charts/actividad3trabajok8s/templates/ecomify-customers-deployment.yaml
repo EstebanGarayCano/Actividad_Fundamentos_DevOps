@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ecomify-customers
+  labels:
+    app: ecomify-customers
+spec:
+  replicas: {{ .Values.ecomifyCustomers.replicaCount }}
+  selector:
+    matchLabels:
+      app: ecomify-customers
+  template:
+    metadata:
+      labels:
+        app: ecomify-customers
+    spec:
+      containers:
+        - name: ecomify-customers
+          image: "{{ .Values.ecomifyCustomers.image.repository }}:{{ .Values.ecomifyCustomers.image.tag }}"
+          imagePullPolicy: {{ .Values.ecomifyCustomers.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.ecomifyCustomers.containerPort }}
+          readinessProbe:
+            httpGet:
+              path: /api/customers
+              port: {{ .Values.ecomifyCustomers.containerPort }}
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/customers
+              port: {{ .Values.ecomifyCustomers.containerPort }}
+            initialDelaySeconds: 30
+            periodSeconds: 20

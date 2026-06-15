@@ -1,9 +1,22 @@
+registry: us-central1-docker.pkg.dev/project-54ecee29-e768-42f3-977/devops-repo
+
+ecomifyCustomers:
+  replicaCount: 1
+  image:
+    repository: us-central1-docker.pkg.dev/project-54ecee29-e768-42f3-977/devops-repo/ecomify-customers
+    tag: latest
+    pullPolicy: Always
+  service:
+    type: LoadBalancer
+    port: 8080
+  containerPort: 8080
+
 backend:
   replicaCount: 1
   image:
-    repository: us-central1-docker.pkg.dev/project-5a9e4b02-002e-455f-acc/actividad3trabajok8s/backend
+    repository: us-central1-docker.pkg.dev/project-54ecee29-e768-42f3-977/devops-repo/backend
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
   service:
     type: LoadBalancer
     port: 8080
@@ -13,9 +26,9 @@ backend:
 productos:
   replicaCount: 1
   image:
-    repository: us-central1-docker.pkg.dev/project-5a9e4b02-002e-455f-acc/actividad3trabajok8s/productos
+    repository: us-central1-docker.pkg.dev/project-54ecee29-e768-42f3-977/devops-repo/productos
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
   service:
     type: LoadBalancer
     port: 5000
@@ -27,9 +40,9 @@ productos:
 frontend:
   replicaCount: 1
   image:
-    repository: us-central1-docker.pkg.dev/project-5a9e4b02-002e-455f-acc/actividad3trabajok8s/frontend
+    repository: us-central1-docker.pkg.dev/project-54ecee29-e768-42f3-977/devops-repo/frontend
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
   service:
     type: LoadBalancer
     port: 80
