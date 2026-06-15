@@ -1,4 +1,4 @@
-name: CI — Unit Tests & Code Quality
+name: CI — Unit Tests, Security & Code Quality
 
 on:
   push:
@@ -8,6 +8,9 @@ on:
   workflow_dispatch:
 
 jobs:
+  # ─────────────────────────────────────────────
+  # JOB 1: Compilación y pruebas unitarias xUnit
+  # ─────────────────────────────────────────────
   unit-tests:
     name: xUnit Tests — EcomifyCustomers
     runs-on: ubuntu-latest
@@ -23,7 +26,7 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore tests/EcomifyCustomers.Tests/EcomifyCustomers.Tests.csproj
 
-      - name: Build (no restore)
+      - name: Build
         run: dotnet build tests/EcomifyCustomers.Tests/EcomifyCustomers.Tests.csproj --no-restore -c Release
 
       - name: Run xUnit tests
@@ -45,11 +48,48 @@ jobs:
           name: test-results-ecomify-customers
           path: TestResults/
 
-  sonarqube:
-    name: SonarQube Analysis
+  # ─────────────────────────────────────────────
+  # JOB 2: Análisis de vulnerabilidades con Snyk
+  # ─────────────────────────────────────────────
+  snyk-security:
+    name: Snyk — Vulnerability Scan
     runs-on: ubuntu-latest
     needs: unit-tests
-    if: ${{ vars.SONAR_HOST_URL != '' }}
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore EcomifyCustomers/EcomifyCustomers.csproj
+
+      - name: Run Snyk vulnerability scan
+        uses: snyk/actions/dotnet@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high --file=EcomifyCustomers/EcomifyCustomers.csproj
+
+      - name: Upload Snyk results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snyk-results
+          path: snyk.sarif
+        continue-on-error: true
+
+  # ─────────────────────────────────────────────
+  # JOB 3: Análisis estático con SonarCloud
+  # ─────────────────────────────────────────────
+  sonarcloud:
+    name: SonarCloud — Static Analysis
+    runs-on: ubuntu-latest
+    needs: unit-tests
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -64,20 +104,23 @@ jobs:
       - name: Install SonarScanner
         run: dotnet tool install --global dotnet-sonarscanner
 
-      - name: Begin SonarQube analysis
+      - name: Restore dependencies
+        run: dotnet restore EcomifyCustomers/EcomifyCustomers.csproj
+
+      - name: Begin SonarCloud analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
         run: |
           dotnet sonarscanner begin \
-            /k:"EcomifyCustomers" \
-            /d:sonar.host.url="${SONAR_HOST_URL}" \
+            /k:"EstebanGarayCano_Actividad_Fundamentos_DevOps" \
+            /o:"estebangaraycano" \
+            /d:sonar.host.url="https://sonarcloud.io" \
             /d:sonar.token="${SONAR_TOKEN}" \
             /d:sonar.cs.opencover.reportsPaths="**/TestResults/coverage.xml" \
             /d:sonar.cs.vstest.reportsPaths="**/TestResults/*.trx"
 
-      - name: Build for SonarQube
-        run: dotnet build EcomifyCustomers/EcomifyCustomers.csproj -c Release
+      - name: Build for analysis
+        run: dotnet build EcomifyCustomers/EcomifyCustomers.csproj -c Release --no-restore
 
       - name: Run tests for coverage
         run: |
@@ -89,8 +132,7 @@ jobs:
             /p:CoverletOutputFormat=opencover \
             /p:CoverletOutput=./TestResults/coverage.xml
 
-      - name: End SonarQube analysis
+      - name: End SonarCloud analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
         run: dotnet sonarscanner end /d:sonar.token="${SONAR_TOKEN}"
