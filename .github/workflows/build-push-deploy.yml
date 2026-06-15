@@ -1,8 +1,7 @@
-# CI: Build and push images to Google Artifact Registry (linux/amd64).
-# CD: Rollout restart in GKE so new images are pulled.
-#
-# Secret en GitHub (Settings → Secretos y variables → Actions): GCP_SA_KEY = contenido del JSON de la cuenta de servicio.
-# La cuenta debe tener: Escritor de Artifact Registry + Desarrollador de Kubernetes Engine.
+# Build y push de imágenes a Google Artifact Registry (linux/amd64)
+# Proyecto: project-54ecee29-e768-42f3-977
+# Registry:  us-central1-docker.pkg.dev/.../devops-repo
+# Auth:      Workload Identity Federation (sin claves JSON)
 
 name: Build, Push & Deploy
 
@@ -21,7 +20,7 @@ env:
 
 jobs:
   build-and-push:
-    name: Build and push images
+    name: Build and push images to Artifact Registry
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -30,7 +29,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Authenticate to Google Cloud
+      - name: Authenticate to Google Cloud (Workload Identity)
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ env.WIF_PROVIDER }}
@@ -73,21 +72,23 @@ jobs:
           docker push ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/frontend:latest
 
   deploy:
-    name: Rollout restart (GKE)
+    name: Deploy to GKE
     needs: build-and-push
     runs-on: ubuntu-latest
+    if: ${{ vars.GKE_CLUSTER_NAME != '' }}
     env:
-      GKE_CLUSTER_NAME: ${{ vars.GKE_CLUSTER_NAME || 'mi-cluster' }}
+      GKE_CLUSTER_NAME: ${{ vars.GKE_CLUSTER_NAME }}
       GKE_ZONE: ${{ vars.GKE_ZONE || 'us-central1' }}
       GKE_NAMESPACE: default
     permissions:
       contents: read
       id-token: write
     steps:
-      - name: Authenticate to Google Cloud
+      - name: Authenticate to Google Cloud (Workload Identity)
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.WIF_SA }}
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
@@ -103,5 +104,5 @@ jobs:
 
       - name: Rollout restart deployments
         run: |
-          kubectl rollout restart deployment/backend deployment/frontend deployment/productos -n ${{ env.GKE_NAMESPACE }}
-          kubectl rollout status deployment/backend deployment/frontend deployment/productos -n ${{ env.GKE_NAMESPACE }} --timeout=300s
+          kubectl rollout restart deployment/ecomify-customers deployment/backend deployment/frontend deployment/productos -n ${{ env.GKE_NAMESPACE }}
+          kubectl rollout status deployment/ecomify-customers deployment/backend deployment/frontend deployment/productos -n ${{ env.GKE_NAMESPACE }} --timeout=300s
