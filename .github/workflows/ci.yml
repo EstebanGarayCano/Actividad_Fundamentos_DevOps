@@ -113,14 +113,13 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore EcomifyCustomers/EcomifyCustomers.csproj
 
-      - name: Begin SonarCloud analysis
+      - name: Begin SonarQube analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           dotnet sonarscanner begin \
-            /k:"EstebanGarayCano_Actividad_Fundamentos_DevOps" \
-            /o:"estebangaraycano" \
-            /d:sonar.host.url="https://sonarcloud.io" \
+            /k:"ecomify-customers" \
+            /d:sonar.host.url="http://136.115.62.202:9000" \
             /d:sonar.token="${SONAR_TOKEN}" \
             /d:sonar.cs.opencover.reportsPaths="**/TestResults/coverage.xml" \
             /d:sonar.cs.vstest.reportsPaths="**/TestResults/*.trx"
@@ -138,7 +137,7 @@ jobs:
             /p:CoverletOutputFormat=opencover \
             /p:CoverletOutput=./TestResults/coverage.xml
 
-      - name: End SonarCloud analysis
+      - name: End SonarQube analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: dotnet sonarscanner end /d:sonar.token="${SONAR_TOKEN}"
