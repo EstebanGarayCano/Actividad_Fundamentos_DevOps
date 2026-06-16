@@ -20,6 +20,9 @@ spec:
           imagePullPolicy: {{ .Values.ecomifyCustomers.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.ecomifyCustomers.containerPort }}
+          env:
+            - name: ConnectionStrings__DefaultConnection
+              value: "Host=aws-0-us-west-1.pooler.supabase.com;Port=6543;Database=postgres;Username=postgres.whebvyxbbwlmtpkmiumn;Password=Postgres123+;SSL Mode=Require;Trust Server Certificate=true"
           readinessProbe:
             httpGet:
               path: /api/customers
