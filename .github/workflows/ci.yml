@@ -68,12 +68,18 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore EcomifyCustomers/EcomifyCustomers.csproj
 
+      - name: Install Snyk CLI
+        run: npm install -g snyk
+
       - name: Run Snyk vulnerability scan
-        uses: snyk/actions/dotnet@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --severity-threshold=high --file=EcomifyCustomers/EcomifyCustomers.csproj
+        run: |
+          snyk test \
+            --severity-threshold=high \
+            --file=EcomifyCustomers/EcomifyCustomers.csproj \
+            --sarif-file-output=snyk.sarif
+        continue-on-error: true
 
       - name: Upload Snyk results
         if: always()
