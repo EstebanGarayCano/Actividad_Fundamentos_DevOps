@@ -3,6 +3,7 @@ using EcomifyCustomers.Models;
 using EcomifyCustomers.Services;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,5 +33,7 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseCors();
+app.UseHttpMetrics();
 app.MapControllers();
+app.MapMetrics();
 app.Run();
